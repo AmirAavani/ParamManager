@@ -39,9 +39,8 @@ type
 
   { TParam }
 
-  // All the objects that we want to be assignable using InitAndParse must be
-  // defined as "published".
-  // TODO(Amir): Add more
+  // All the Fields that we want to be assignable using InitAndParse must be
+  // defined as "published" and inherit from TValue.
   TParam = class(TValue)
   published
     Range: TRange;
@@ -101,6 +100,17 @@ begin
 
 
   Param1 := TParam.Create;
+  InitAndParse('Int1=123,Range.Start=23,pair.Second=True', Param1);
+  WriteLn(Format('Int1: %d Name: %s Range:(%d, %d) Pair:(%0.4f, %s)',
+    [Param1.Int1.Value, Param1.Name.Value, Param1.Range.Start.Value,
+    Param1.Range.Finish.Value,
+    Param1.Pair.First.Value, BoolToStr(Param1.Pair.Second.Value)])
+  );
+  Param1.Free;
+
+  Param1 := TParam.Create;
+  Param1.Name := TStringValue.Create;
+  Param1.Name.Update('MyName');
   InitAndParse('Int1=123,Range.Start=23,pair.Second=True', Param1);
   WriteLn(Format('Int1: %d Name: %s Range:(%d, %d) Pair:(%0.4f, %s)',
     [Param1.Int1.Value, Param1.Name.Value, Param1.Range.Start.Value,
