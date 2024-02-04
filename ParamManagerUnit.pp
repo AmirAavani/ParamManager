@@ -16,7 +16,7 @@ type
   TValue = class(TObject)
   public
     constructor Create; virtual;
-    procedure Update(constref x: AnsiString); virtual; abstract;
+    procedure Update(constref x: AnsiString); virtual;
 
   end;
   TValueClass = class of TValue;
