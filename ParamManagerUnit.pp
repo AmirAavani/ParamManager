@@ -120,6 +120,11 @@ begin
 
 end;
 
+procedure TValue.Update(constref x: AnsiString);
+begin
+
+end;
+
 { TIntValue }
 
 constructor TIntValue.Create;
