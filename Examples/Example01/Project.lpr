@@ -111,7 +111,7 @@ begin
   Param1 := TParam.Create;
   Param1.Name := TStringValue.Create;
   Param1.Name.Update('MyName');
-  InitAndParse('Int1=123,Range.Start=23,pair.Second=True', Param1);
+  InitAndParse('Pair.Second=123,Range.Start=23,pair.Second=True', Param1);
   WriteLn(Format('Int1: %d Name: %s Range:(%d, %d) Pair:(%0.4f, %s)',
     [Param1.Int1.Value, Param1.Name.Value, Param1.Range.Start.Value,
     Param1.Range.Finish.Value,

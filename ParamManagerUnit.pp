@@ -16,7 +16,7 @@ type
   TValue = class(TObject)
   public
     constructor Create; virtual;
-    procedure Update(constref x: AnsiString); virtual;
+    procedure Update(constref x: AnsiString); virtual; abstract;
 
   end;
   TValueClass = class of TValue;
@@ -119,12 +119,6 @@ begin
   inherited Create;
 
 end;
-
-procedure TValue.Update(constref x: AnsiString);
-begin
-
-end;
-
 
 { TIntValue }
 
