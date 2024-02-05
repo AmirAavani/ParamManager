@@ -7,8 +7,21 @@ etc.
 
 ## Examples 
 ```
+  Example1:
+
   Param := TParam.Create;
   InitAndParse('Int1=123,Range.Start=23,pair.Second=True', Param);
+  ....
   Param.Free;
+
+
+  Example02:
+  Param := TParam.Create;
+  InitAndParse('Int1=123,Range.Start=23,pair.Second=True', Param);
+  InitFromParameters(Param);
+  ...
+  Param.Free;
+
+
 ```
 
