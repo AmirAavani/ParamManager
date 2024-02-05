@@ -193,7 +193,6 @@ end;
 // 1) It uses ',' as a separator, and will break if ',' is part of a string value.
 // 2) It does not support more succint ParamStr in the form of
 //       A.B.C:{x=1,y=2}
-//generic function InitAndParse<TParam>(constref ParamStr: AnsiString): TParam;
 function InitAndParse(constref ParamStr: AnsiString; Param: TValue): Boolean;
 type
   TStringStringMap = specialize TFPGMap<AnsiString, AnsiString>;
@@ -233,9 +232,10 @@ var
          raise EInvalidValueClass.Create(FieldClass.ClassName);
 
        ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
+       ChildTClass := TValueClass(FieldClass);
+
        if ChildObj = nil then
        begin
-         ChildTClass := TValueClass(FieldClass);
          ChildObj := ChildTClass.Create;
          TObject(Obj.FieldAddress(vfe^.Name)^) := ChildObj;
        end;
@@ -243,6 +243,7 @@ var
        if PVMT(ChildTClass)^.vFieldTable = nil then
        begin
          Name := CurrentName + '.' + LowerCase(vfe^.Name);
+         // WriteLn(Format('Name: %s', [Name]));
 
          StrValue := '';
          if NameValueMap.TryGetData(Name, StrValue) then
@@ -289,8 +290,6 @@ begin
   end;
   NameValues.Free;
 
-  // Param := TParam.Create;
-
   Process(PVmtFieldTable(PVMT(Param.ClassType)^.vFieldTable), Param, '');
 
   NameValueMap.Free;
@@ -307,6 +306,8 @@ begin
 
   for i := 1 to ParamCount do
     AllParamStr += ParamStr(i);
+  if AllParamStr = '' then
+    Exit(True);	  
 
   Result := InitAndParse(AllParamStr, Param);
 
