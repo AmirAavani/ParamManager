@@ -298,6 +298,7 @@ end;
 
 function InitFromParameters(Param: TValue): Boolean;
 var
+  ParamStrs: TStringList;
   AllParamStr: AnsiString;
   i: Integer;
 
@@ -305,9 +306,10 @@ begin
   AllParamStr := '';
 
   for i := 1 to ParamCount do
-    AllParamStr += ParamStr(i);
+    AllParamStr += ' ' + ParamStr(i);
+  AllParamStr := Copy(AllParamStr, 2, Length(AllParamStr));
   if AllParamStr = '' then
-    Exit(True);	  
+    Exit(True);
 
   Result := InitAndParse(AllParamStr, Param);
 
