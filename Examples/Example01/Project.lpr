@@ -78,11 +78,6 @@ end;
 
 destructor TParam.Destroy;
 begin
-  Range.Free;
-  Int1.Free;
-  Name.Free;
-  Pair.Free;
-
   inherited Create;
 
 end;

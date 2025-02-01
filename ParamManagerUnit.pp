@@ -18,7 +18,9 @@ type
     constructor Create; virtual;
     procedure Update(constref x: AnsiString); virtual;
 
+    destructor Destroy; override;
   end;
+
   TValueClass = class of TValue;
 
   { TIntValue }
@@ -32,6 +34,7 @@ type
 
     constructor Create; override;
     procedure Update(constref x: AnsiString); override;
+
 
   end;
 
@@ -123,6 +126,52 @@ end;
 procedure TValue.Update(constref x: AnsiString);
 begin
 
+end;
+
+destructor TValue.Destroy;
+  procedure Process(vft: PVmtFieldTable; Obj: TValue);
+  var
+    vfe: PVmtFieldEntry;
+    i: SizeInt;
+    ChildObj: TValue;
+    FieldClass: TClass;
+
+  begin
+    if vft = nil then
+    begin
+      if not (Obj is TValue) then
+      begin
+        WriteLn('Invalid Setup');
+        Halt(1);
+      end;
+      if Obj is TStringValue then
+        Exit;
+      if Obj is TIntValue then
+        Exit;
+
+    end;
+
+    // Writeln(vft^.Count, ' field(s) with ', vft^.ClassTab^.Count, ' type(s)');
+
+    for i := 0 to vft^.Count - 1 do
+    begin
+       vfe := vft^.Field[i];
+       // Writeln(i, ' -> ', vfe^.Name, ' @ ', vfe^.FieldOffset, ' of type ', vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^.ClassName);
+
+       FieldClass :=  vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
+       if not FieldClass.InheritsFrom(TValue) then
+         raise EInvalidValueClass.Create(FieldClass.ClassName);
+       ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
+       ChildObj.Free;
+
+     end;
+
+  end;
+
+begin
+  Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self);
+
+  inherited Destroy;
 end;
 
 { TIntValue }
@@ -277,6 +326,9 @@ begin
   NameValues.DelimitedText := ParamStr;
   for NameValue in NameValues do
   begin
+    if Length(NameValue) = 0 then
+      Continue;
+
     AList := TStringList.Create;
     AList.Delimiter := '=';
     AList.DelimitedText := NameValue;
@@ -285,7 +337,7 @@ begin
     Name := NameValue;
     Delete(Name, Length(Name) - Length(Value), 1 + Length(Value));
 
-    // WriteLn('NameValue: ', NameValue, ' Name: ', Name, ' Value: ', Value);
+    //WriteLn('NameValue: ', NameValue, ' Name: ', Name, ' Value: ', Value);
     NameValueMap.Add(LowerCase('.' + Name), Value);
   end;
   NameValues.Free;
@@ -306,7 +358,7 @@ begin
   AllParamStr := '';
 
   for i := 1 to ParamCount do
-    AllParamStr += ' ' + ParamStr(i);
+    AllParamStr += ',' + ParamStr(i);
   AllParamStr := Copy(AllParamStr, 2, Length(AllParamStr));
   if AllParamStr = '' then
     Exit(True);
