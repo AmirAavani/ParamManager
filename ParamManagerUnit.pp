@@ -35,6 +35,7 @@ type
     constructor Create; override;
     procedure Update(constref x: AnsiString); override;
 
+    destructor Destroy; override;
 
   end;
 
@@ -50,6 +51,8 @@ type
     constructor Create; override;
     procedure Update(constref x: AnsiString); override;
 
+    destructor Destroy; override;
+
   end;
 
   { TExtendedValue }
@@ -64,6 +67,7 @@ type
     constructor Create; override;
     procedure Update(constref x: AnsiString); override;
 
+    destructor Destroy; override;
   end;
 
   { TBooleanValue }
@@ -78,6 +82,7 @@ type
     constructor Create; override;
     procedure Update(constref x: AnsiString); override;
 
+    destructor Destroy; override;
   end;
 
 
@@ -144,19 +149,16 @@ destructor TValue.Destroy;
         WriteLn('Invalid Setup');
         Halt(1);
       end;
-      if Obj is TStringValue then
-        Exit;
-      if Obj is TIntValue then
-        Exit;
+      Exit;
 
     end;
 
-    // Writeln(vft^.Count, ' field(s) with ', vft^.ClassTab^.Count, ' type(s)');
+   // Writeln(vft^.Count, ' field(s) with ', vft^.ClassTab^.Count, ' type(s)');
 
     for i := 0 to vft^.Count - 1 do
     begin
        vfe := vft^.Field[i];
-       // Writeln(i, ' -> ', vfe^.Name, ' @ ', vfe^.FieldOffset, ' of type ', vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^.ClassName);
+       //Writeln(i, ' -> ', vfe^.Name, ' @ ', vfe^.FieldOffset, ' of type ', vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^.ClassName);
 
        FieldClass :=  vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
        if not FieldClass.InheritsFrom(TValue) then
@@ -169,6 +171,19 @@ destructor TValue.Destroy;
   end;
 
 begin
+  if Self.ClassName = 'TStringValue' then
+  begin
+    inherited Destroy;
+    Exit;
+
+  end;
+  if Self.ClassName = 'TIntValue' then
+  begin
+    inherited Destroy;
+    Exit;
+
+  end;
+
   Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self);
 
   inherited Destroy;
@@ -190,6 +205,11 @@ begin
 
 end;
 
+destructor TIntValue.Destroy;
+begin
+  inherited Destroy;
+end;
+
 { TExtendedValue }
 
 constructor TExtendedValue.Create;
@@ -204,6 +224,11 @@ procedure TExtendedValue.Update(constref x: AnsiString);
 begin
   FValue := StrToFloat(x);
 
+end;
+
+destructor TExtendedValue.Destroy;
+begin
+  inherited Destroy;
 end;
 
 { TBooleanValue }
@@ -221,6 +246,11 @@ begin
 
 end;
 
+destructor TBooleanValue.Destroy;
+begin
+  inherited Destroy;
+end;
+
 { TStringValue }
 
 constructor TStringValue.Create;
@@ -235,6 +265,11 @@ procedure TStringValue.Update(constref x: AnsiString);
 begin
   FValue := x;
 
+end;
+
+destructor TStringValue.Destroy;
+begin
+  inherited Destroy;
 end;
 
 
