@@ -19,6 +19,8 @@ type
     procedure Update(constref x: AnsiString); virtual;
 
     destructor Destroy; override;
+
+    function ToString: AnsiString; override;
   end;
 
   TValueClass = class of TValue;
@@ -37,6 +39,8 @@ type
 
     destructor Destroy; override;
 
+    function ToString: AnsiString; override;
+
   end;
 
   { TStringValue }
@@ -53,6 +57,8 @@ type
 
     destructor Destroy; override;
 
+    function ToString: AnsiString; override;
+
   end;
 
   { TExtendedValue }
@@ -68,6 +74,8 @@ type
     procedure Update(constref x: AnsiString); override;
 
     destructor Destroy; override;
+
+    function ToString: AnsiString; override;
   end;
 
   { TBooleanValue }
@@ -83,6 +91,8 @@ type
     procedure Update(constref x: AnsiString); override;
 
     destructor Destroy; override;
+
+    function ToString: AnsiString; override;
   end;
 
 
@@ -189,6 +199,12 @@ begin
   inherited Destroy;
 end;
 
+function TValue.ToString: AnsiString;
+begin
+  WriteLn('Should not reach here');
+  Halt(1);
+end;
+
 { TIntValue }
 
 constructor TIntValue.Create;
@@ -208,6 +224,12 @@ end;
 destructor TIntValue.Destroy;
 begin
   inherited Destroy;
+end;
+
+function TIntValue.ToString: AnsiString;
+begin
+  Result := IntToStr(Value);
+
 end;
 
 { TExtendedValue }
@@ -231,6 +253,11 @@ begin
   inherited Destroy;
 end;
 
+function TExtendedValue.ToString: AnsiString;
+begin
+  Result := FloatToStr(Value);
+end;
+
 { TBooleanValue }
 
 constructor TBooleanValue.Create;
@@ -249,6 +276,11 @@ end;
 destructor TBooleanValue.Destroy;
 begin
   inherited Destroy;
+end;
+
+function TBooleanValue.ToString: AnsiString;
+begin
+  Result:= BoolToStr(Value);
 end;
 
 { TStringValue }
@@ -280,6 +312,11 @@ end;
 destructor TStringValue.Destroy;
 begin
   inherited Destroy;
+end;
+
+function TStringValue.ToString: AnsiString;
+begin
+  Result := FValue;
 end;
 
 
