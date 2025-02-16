@@ -99,7 +99,7 @@ function InitFromParameters(Param: TValue): Boolean;
 implementation
 
 uses
-  TypInfo, fgl;
+  TypInfo, fgl, StringUnit;
 
 type
 
@@ -262,7 +262,17 @@ begin
 end;
 
 procedure TStringValue.Update(constref x: AnsiString);
+const
+  SingleQuotStr = AnsiString(#39);
+
 begin
+  if IsPrefix(SingleQuotStr, x) and IsSuffix(SingleQuotStr, x) then
+  begin
+    FValue := Copy(x, 2, Length(x) - 2);
+    Exit;
+
+  end;
+
   FValue := x;
 
 end;
