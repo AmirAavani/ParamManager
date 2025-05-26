@@ -78,7 +78,7 @@ end;
 
 destructor TParam.Destroy;
 begin
-  inherited Create;
+  inherited Destroy;
 
 end;
 
