@@ -21,7 +21,6 @@ type
     Finish: TIntValue;
 
   public
-    destructor Destroy; override;
 
   end;
 
@@ -33,7 +32,6 @@ type
     Second: TBooleanValue;
 
   public
-    destructor Destroy; override;
 
   end;
 
@@ -49,13 +47,12 @@ type
     Pair: TPair;
 
   public
-    destructor Destroy; override;
-
   end;
 
 var
   Param1: TParam;
 
+<<<<<<< Updated upstream
 destructor TRange.Destroy;
 begin
   Self.Start.Free;
@@ -82,6 +79,8 @@ begin
 
 end;
 
+=======
+>>>>>>> Stashed changes
 begin
 
   Param1 := TParam.Create;

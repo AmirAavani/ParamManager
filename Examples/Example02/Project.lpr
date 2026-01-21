@@ -21,7 +21,6 @@ type
     Finish: TIntValue;
 
   public
-    destructor Destroy; override;
 
   end;
 
@@ -33,7 +32,6 @@ type
     Second: TIntValue;
 
   public
-    destructor Destroy; override;
 
   end;
 
@@ -48,39 +46,8 @@ type
     Verbose: TBooleanValue;
 
   public
-    destructor Destroy; override;
 
   end;
-
-destructor TRange.Destroy;
-begin
-  Self.Start.Free;
-  Self.Finish.Free;
-
-  inherited Destroy;
-end;
-
-{ TPair }
-
-destructor TPair.Destroy;
-begin
-  Self.First.Free;
-  Self.Second.Free;
-
-  inherited Destroy;
-end;
-
-{ TParam }
-
-destructor TParam.Destroy;
-begin
-  Range.Free;
-  Modulo.Free;
-  Verbose.Free;
-
-  inherited Create;
-
-end;
 
 var
   Param: TParam;
