@@ -52,35 +52,6 @@ type
 var
   Param1: TParam;
 
-<<<<<<< Updated upstream
-destructor TRange.Destroy;
-begin
-  Self.Start.Free;
-  Self.Finish.Free;
-
-  inherited Destroy;
-end;
-
-{ TPair }
-
-destructor TPair.Destroy;
-begin
-  Self.First.Free;
-  Self.Second.Free;
-
-  inherited Destroy;
-end;
-
-{ TParam }
-
-destructor TParam.Destroy;
-begin
-  inherited Destroy;
-
-end;
-
-=======
->>>>>>> Stashed changes
 begin
 
   Param1 := TParam.Create;

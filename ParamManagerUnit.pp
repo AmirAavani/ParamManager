@@ -18,7 +18,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    procedure Update(constref x: AnsiString); virtual;
+    procedure Update(const x: AnsiString); virtual;
 
     function ToString: AnsiString; override;
   end;
@@ -35,7 +35,7 @@ type
     property Value: Int64 read FValue;
 
     constructor Create; override;
-    procedure Update(constref x: AnsiString); override;
+    procedure Update(const x: AnsiString); override;
 
     destructor Destroy; override;
 
@@ -53,7 +53,7 @@ type
     property Value: AnsiString read FValue;
 
     constructor Create; override;
-    procedure Update(constref x: AnsiString); override;
+    procedure Update(const x: AnsiString); override;
 
     destructor Destroy; override;
 
@@ -71,7 +71,7 @@ type
     property Value: Extended read FValue;
 
     constructor Create; override;
-    procedure Update(constref x: AnsiString); override;
+    procedure Update(const x: AnsiString); override;
 
     destructor Destroy; override;
 
@@ -88,7 +88,7 @@ type
     property Value: Boolean read FValue;
 
     constructor Create; override;
-    procedure Update(constref x: AnsiString); override;
+    procedure Update(const x: AnsiString); override;
 
     destructor Destroy; override;
 
@@ -109,7 +109,7 @@ function InitFromParameters(Param: TValue): Boolean;
 implementation
 
 uses
-  TypInfo, fgl, StringUnit;
+  TypInfo, fgl; //, StringUnit;
 
 type
 
@@ -182,65 +182,9 @@ begin
 
 end;
 
-procedure TValue.Update(constref x: AnsiString);
+procedure TValue.Update(const x: AnsiString);
 begin
 
-end;
-
-destructor TValue.Destroy;
-  procedure Process(vft: PVmtFieldTable; Obj: TValue);
-  var
-    vfe: PVmtFieldEntry;
-    i: SizeInt;
-    ChildObj: TValue;
-    FieldClass: TClass;
-
-  begin
-    if vft = nil then
-    begin
-      if not (Obj is TValue) then
-      begin
-        WriteLn('Invalid Setup');
-        Halt(1);
-      end;
-      Exit;
-
-    end;
-
-   // Writeln(vft^.Count, ' field(s) with ', vft^.ClassTab^.Count, ' type(s)');
-
-    for i := 0 to vft^.Count - 1 do
-    begin
-       vfe := vft^.Field[i];
-       //Writeln(i, ' -> ', vfe^.Name, ' @ ', vfe^.FieldOffset, ' of type ', vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^.ClassName);
-
-       FieldClass :=  vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
-       if not FieldClass.InheritsFrom(TValue) then
-         raise EInvalidValueClass.Create(FieldClass.ClassName);
-       ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
-       ChildObj.Free;
-
-     end;
-
-  end;
-
-begin
-  if Self.ClassName = 'TStringValue' then
-  begin
-    inherited Destroy;
-    Exit;
-
-  end;
-  if Self.ClassName = 'TIntValue' then
-  begin
-    inherited Destroy;
-    Exit;
-
-  end;
-
-  Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self);
-
-  inherited Destroy;
 end;
 
 function TValue.ToString: AnsiString;
@@ -260,7 +204,7 @@ begin
 
 end;
 
-procedure TIntValue.Update(constref x: AnsiString);
+procedure TIntValue.Update(const x: AnsiString);
 begin
   FValue := StrToInt64(x);
 
@@ -288,7 +232,7 @@ begin
 
 end;
 
-procedure TExtendedValue.Update(constref x: AnsiString);
+procedure TExtendedValue.Update(const x: AnsiString);
 begin
   FValue := StrToFloat(x);
 
@@ -316,7 +260,7 @@ begin
 
 end;
 
-procedure TBooleanValue.Update(constref x: AnsiString);
+procedure TBooleanValue.Update(const x: AnsiString);
 begin
   FValue := StrToBool(x);
 
@@ -344,12 +288,12 @@ begin
 
 end;
 
-procedure TStringValue.Update(constref x: AnsiString);
+procedure TStringValue.Update(const x: AnsiString);
 const
-  SingleQuotStr = AnsiString(#39);
+  SingleQuot = Char(#39);
 
 begin
-  if IsPrefix(SingleQuotStr, x) and IsSuffix(SingleQuotStr, x) then
+  if x.StartsWith(SingleQuot) and x.EndsWith(SingleQuot) then
   begin
     FValue := Copy(x, 2, Length(x) - 2);
     Exit;
