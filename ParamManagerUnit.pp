@@ -1,6 +1,7 @@
 unit ParamManagerUnit;
 
 {$mode ObjFPC}{$H+}
+{$COPERATORS ON}
 
 interface
 
