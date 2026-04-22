@@ -189,10 +189,50 @@ begin
 end;
 
 function TValue.ToString: AnsiString;
-begin
-  WriteLn('Should not reach here');
-  Halt(1);
 
+  procedure Process(vft: PVmtFieldTable; Obj: TValue; constref Prefix: AnsiString);
+  var
+    vfe: PVmtFieldEntry;
+    i: SizeInt;
+    ChildObj: TValue;
+    FieldClass: TClass;
+  begin
+    if vft = nil then
+      Exit;
+    for i := 0 to vft^.Count - 1 do
+    begin
+       vfe := vft^.Field[i];
+      FieldClass := vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
+
+       if not FieldClass.InheritsFrom(TValue) then
+         Continue;
+
+      ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
+      if ChildObj = nil then
+        Continue;
+
+      if PVMT(FieldClass)^.vFieldTable = nil then // This is a leaf node (e.g., TIntValue, TStringValue)
+begin
+        if Length(Result) > 0 then
+          Result += ',';
+        Result += Prefix + vfe^.Name + '=' + ChildObj.ToString; // Changed ':' to '=' to match InitAndParse expectations
+
+      end
+      else // This is a composite node (another TValue descendant with fields)
+  begin
+        Process(
+          PVmtFieldTable(PVMT(FieldClass)^.vFieldTable),
+          ChildObj,
+          Prefix + vfe^.Name + '.'
+        );
+  end;
+end;
+
+end;
+
+begin
+  Result := '';
+  Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self, '');
 end;
 
 { TIntValue }
