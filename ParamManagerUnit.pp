@@ -9,7 +9,6 @@ uses
   Classes, SysUtils;
 
 type
-
   {$M+}
 
   { TValue }
@@ -18,30 +17,23 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-
     procedure Update(const x: AnsiString); virtual;
-
     function ToString: AnsiString; override;
   end;
 
   TValueClass = class of TValue;
 
+  { Leaf Nodes: Simple types }
+
   { TIntValue }
 
   TIntValue = class(TValue)
   protected
-    FValue: Int64;
-
+    FValue: int64;
   public
-    property Value: Int64 read FValue;
-
-    constructor Create; override;
+    property Value: int64 read FValue;
     procedure Update(const x: AnsiString); override;
-
-    destructor Destroy; override;
-
     function ToString: AnsiString; override;
-
   end;
 
   { TStringValue }
@@ -49,33 +41,20 @@ type
   TStringValue = class(TValue)
   protected
     FValue: AnsiString;
-
   public
     property Value: AnsiString read FValue;
-
-    constructor Create; override;
     procedure Update(const x: AnsiString); override;
-
-    destructor Destroy; override;
-
     function ToString: AnsiString; override;
-
   end;
 
   { TExtendedValue }
 
   TExtendedValue = class(TValue)
   protected
-    FValue: Extended;
-
+    FValue: extended;
   public
-    property Value: Extended read FValue;
-
-    constructor Create; override;
+    property Value: extended read FValue;
     procedure Update(const x: AnsiString); override;
-
-    destructor Destroy; override;
-
     function ToString: AnsiString; override;
   end;
 
@@ -84,411 +63,212 @@ type
   TBooleanValue = class(TValue)
   protected
     FValue: Boolean;
-
   public
     property Value: Boolean read FValue;
-
-    constructor Create; override;
     procedure Update(const x: AnsiString); override;
-
-    destructor Destroy; override;
-
     function ToString: AnsiString; override;
   end;
 
-
-// As its input, it gets a comma separated String where each part is in form of
-// `Name=Value`. Name is a string, like "Start", "UserInfo.Username", "Date.YYYY".
-// This function initializes the appropriate field (field of subfield, etc) with
-// the given Value.
-// Please have a look at Examples to find more.
+{ Parsing Functions }
 function InitAndParse(constref ParamStr: AnsiString; Param: TValue): Boolean;
-// Instead of accepting a ParamStr, this function makes one by joining ParamStrs
-// with ",".
 function InitFromParameters(Param: TValue): Boolean;
 
 implementation
 
 uses
-  TypInfo, fgl; //, StringUnit;
+  { Move these here to keep the interface clean }
+  TypInfo,
+  Generics.Collections;
 
 type
+  TStringStringMap = specialize TDictionary<AnsiString, AnsiString>;
 
-  { EInvalidValueClass }
-
-  EInvalidValueClass = class(Exception)
-  public
-    constructor Create(constref AClassName: AnsiString);
-
-  end;
-
-{ EInvalidValueClass }
-
-constructor EInvalidValueClass.Create(constref AClassName: AnsiString);
-begin
-  inherited Create(Format('Invalid Value ClassName %s', [AClassName]));
-
-end;
-
-
-{ TValue }
+  { TValue }
 
 constructor TValue.Create;
 begin
   inherited Create;
-
 end;
 
 destructor TValue.Destroy;
-
-  procedure Process(vft: PVmtFieldTable; Obj: TValue);
-  var
-    vfe: PVmtFieldEntry;
-    i: SizeInt;
-    ChildObj: TValue;
-    FieldClass: TClass;
-    ChildTClass: TValueClass;
-
+var
+  vft: PVmtFieldTable;
+  vfe: PVmtFieldEntry;
+  i: SizeInt;
+  ChildObj: TValue;
+begin
+  { VMT walking to automatically free children }
+  vft := PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable);
+  if vft <> nil then
   begin
-    if vft = nil then
-    begin
-      if not (Obj is TValue) then
-      begin
-        WriteLn('Invalid Setup');
-        Halt(1);
-
-      end;
-
-      Exit;
-
-    end;
-
-    // Writeln(vft^.Count, ' field(s) with ', vft^.ClassTab^.Count, ' type(s)');
     for i := 0 to vft^.Count - 1 do
     begin
-       vfe := vft^.Field[i];
-       // Writeln(i, ' -> ', vfe^.Name, ' @ ', vfe^.FieldOffset, ' of type ', vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^.ClassName);
-
-       ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
-       ChildObj.Free;
-
-     end;
-
+      vfe := vft^.Field[i];
+      ChildObj := TValue(Self.FieldAddress(vfe^.Name)^);
+      ChildObj.Free;
+    end;
   end;
-
-begin
-  Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self);
-
   inherited Destroy;
-
 end;
 
 procedure TValue.Update(const x: AnsiString);
 begin
-
 end;
 
 function TValue.ToString: AnsiString;
 
-  procedure Process(vft: PVmtFieldTable; Obj: TValue; constref Prefix: AnsiString);
+  procedure Process(vft: PVmtFieldTable; Obj: TValue; constref Prefix: AnsiString;
+  var OutStr: AnsiString);
   var
     vfe: PVmtFieldEntry;
     i: SizeInt;
     ChildObj: TValue;
     FieldClass: TClass;
   begin
-    if vft = nil then
-      Exit;
+    if vft = nil then Exit;
     for i := 0 to vft^.Count - 1 do
     begin
-       vfe := vft^.Field[i];
+      vfe := vft^.Field[i];
       FieldClass := vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
-
-       if not FieldClass.InheritsFrom(TValue) then
-         Continue;
+      if not FieldClass.InheritsFrom(TValue) then Continue;
 
       ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
-      if ChildObj = nil then
-        Continue;
+      if ChildObj = nil then Continue;
 
-      if PVMT(FieldClass)^.vFieldTable = nil then // This is a leaf node (e.g., TIntValue, TStringValue)
-begin
-        if Length(Result) > 0 then
-          Result += ',';
-        Result += Prefix + vfe^.Name + '=' + ChildObj.ToString; // Changed ':' to '=' to match InitAndParse expectations
-
+      if PVMT(FieldClass)^.vFieldTable = nil then
+      begin
+        if Length(OutStr) > 0 then OutStr += ',';
+        OutStr += Prefix + vfe^.Name + '=' + ChildObj.ToString;
       end
-      else // This is a composite node (another TValue descendant with fields)
-  begin
-        Process(
-          PVmtFieldTable(PVMT(FieldClass)^.vFieldTable),
-          ChildObj,
-          Prefix + vfe^.Name + '.'
-        );
+      else
+        Process(PVmtFieldTable(PVMT(FieldClass)^.vFieldTable), ChildObj,
+          Prefix + vfe^.Name + '.', OutStr);
+    end;
   end;
-end;
-
-end;
 
 begin
   Result := '';
-  Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self, '');
+  Process(PVmtFieldTable(PVMT(Self.ClassType)^.vFieldTable), Self, '', Result);
 end;
 
-{ TIntValue }
-
-constructor TIntValue.Create;
-begin
-  inherited Create;
-
-  FValue := 0;
-
-end;
+{ Leaf Implementations }
 
 procedure TIntValue.Update(const x: AnsiString);
 begin
   FValue := StrToInt64(x);
-
-end;
-
-destructor TIntValue.Destroy;
-begin
-  inherited Destroy;
-
 end;
 
 function TIntValue.ToString: AnsiString;
 begin
-  Result := IntToStr(Value);
-
-end;
-
-{ TExtendedValue }
-
-constructor TExtendedValue.Create;
-begin
-  inherited Create;
-
-  FValue := 0.0;
-
+  Result := IntToStr(FValue);
 end;
 
 procedure TExtendedValue.Update(const x: AnsiString);
 begin
   FValue := StrToFloat(x);
-
-end;
-
-destructor TExtendedValue.Destroy;
-begin
-  inherited Destroy;
-
 end;
 
 function TExtendedValue.ToString: AnsiString;
 begin
-  Result := FloatToStr(Value);
-
-end;
-
-{ TBooleanValue }
-
-constructor TBooleanValue.Create;
-begin
-  inherited Create;
-
-  FValue := False;
-
+  Result := FloatToStr(FValue);
 end;
 
 procedure TBooleanValue.Update(const x: AnsiString);
 begin
   FValue := StrToBool(x);
-
-end;
-
-destructor TBooleanValue.Destroy;
-begin
-  inherited Destroy;
-
 end;
 
 function TBooleanValue.ToString: AnsiString;
 begin
-  Result:= BoolToStr(Value);
-
-end;
-
-{ TStringValue }
-
-constructor TStringValue.Create;
-begin
-  inherited Create;
-
-  FValue := '';
-
+  Result := BoolToStr(FValue);
 end;
 
 procedure TStringValue.Update(const x: AnsiString);
-const
-  SingleQuot = Char(#39);
-
 begin
-  if x.StartsWith(SingleQuot) and x.EndsWith(SingleQuot) then
-  begin
-    FValue := Copy(x, 2, Length(x) - 2);
-    Exit;
-
-  end;
-
-  FValue := x;
-
-end;
-
-destructor TStringValue.Destroy;
-begin
-  inherited Destroy;
-
+  if (Length(x) >= 2) and (x[1] = #39) and (x[Length(x)] = #39) then
+    FValue := Copy(x, 2, Length(x) - 2)
+  else
+    FValue := x;
 end;
 
 function TStringValue.ToString: AnsiString;
 begin
   Result := FValue;
-
 end;
 
-// The current implementation has certain short-commings.
-// 1) It uses ',' as a separator, and will break if ',' is part of a string value.
-// 2) It does not support more succint ParamStr in the form of
-//       A.B.C:{x=1,y=2}
-function InitAndParse(constref ParamStr: AnsiString; Param: TValue): Boolean;
-type
-  TStringStringMap = specialize TFPGMap<AnsiString, AnsiString>;
+{ Recursive Logic }
 
+procedure RecursivePopulate(vft: PVmtFieldTable; Obj: TValue;
+  CurrentName: AnsiString; Map: TStringStringMap);
 var
-  NameValueMap: TStringStringMap;
-
-  procedure Process(vft: PVmtFieldTable; Obj: TValue; CurrentName: AnsiString);
-  var
-    vfe: PVmtFieldEntry;
-    i: SizeInt;
-    Name, StrValue: AnsiString;
-    ChildObj: TValue;
-    FieldClass: TClass;
-    ChildTClass: TValueClass;
-
-  begin
-    if vft = nil then
-    begin
-      if not (Obj is TValue) then
-      begin
-        WriteLn('Invalid Setup');
-        Halt(1);
-      end;
-
-
-    end;
-
-    // Writeln(vft^.Count, ' field(s) with ', vft^.ClassTab^.Count, ' type(s)');
-    for i := 0 to vft^.Count - 1 do
-    begin
-       vfe := vft^.Field[i];
-       // Writeln(i, ' -> ', vfe^.Name, ' @ ', vfe^.FieldOffset, ' of type ', vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^.ClassName);
-
-       FieldClass :=  vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
-       if not FieldClass.InheritsFrom(TValue) then
-         raise EInvalidValueClass.Create(FieldClass.ClassName);
-
-       ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
-       ChildTClass := TValueClass(FieldClass);
-
-       if ChildObj = nil then
-       begin
-         ChildObj := ChildTClass.Create;
-         TObject(Obj.FieldAddress(vfe^.Name)^) := ChildObj;
-
-       end;
-
-       if PVMT(ChildTClass)^.vFieldTable = nil then
-       begin
-         Name := CurrentName + '.' + LowerCase(vfe^.Name);
-         // WriteLn(Format('Name: %s', [Name]));
-
-         StrValue := '';
-         if NameValueMap.TryGetData(Name, StrValue) then
-         begin
-           ChildObj.Update(StrValue);
-
-         end;
-
-         Continue;
-
-       end;
-
-       Process(
-         PVmtFieldTable(PVMT(ChildTClass)^.vFieldTable),
-         ChildObj,
-         CurrentName + '.' + LowerCase(vfe^.Name)
-       );
-
-     end;
-
-  end;
-
-var
-  NameValues: TStringList;
-  NameValue: AnsiString;
-  AList: TStringList;
-  Name, Value: AnsiString;
-
+  vfe: PVmtFieldEntry;
+  i: SizeInt;
+  FullName, StrValue: AnsiString;
+  ChildObj: TValue;
+  FieldClass: TClass;
 begin
-  NameValueMap := TStringStringMap.Create;
-  NameValues := TStringList.Create;
-  NameValues.Delimiter := ',';
-  NameValues.DelimitedText := ParamStr;
-  for NameValue in NameValues do
+  if vft = nil then Exit;
+  for i := 0 to vft^.Count - 1 do
   begin
-    if Length(NameValue) = 0 then
-      Continue;
-
-    AList := TStringList.Create;
-    AList.Delimiter := '=';
-    AList.DelimitedText := NameValue;
-    Value := AList[AList.Count - 1];
-    AList.Free;
-    Name := NameValue;
-    Delete(Name, Length(Name) - Length(Value), 1 + Length(Value));
-
-    //WriteLn('NameValue: ', NameValue, ' Name: ', Name, ' Value: ', Value);
-    NameValueMap.Add(LowerCase('.' + Name), Value);
-
+    vfe := vft^.Field[i];
+    FieldClass := vft^.ClassTab^.ClassRef[vfe^.TypeIndex - 1]^;
+    FullName := CurrentName + '.' + LowerCase(vfe^.Name);
+    ChildObj := TValue(Obj.FieldAddress(vfe^.Name)^);
+    if ChildObj = nil then
+    begin
+      ChildObj := TValueClass(FieldClass).Create;
+      TObject(Obj.FieldAddress(vfe^.Name)^) := ChildObj;
+    end;
+    if PVMT(FieldClass)^.vFieldTable = nil then
+    begin
+      if Map.TryGetValue(FullName, StrValue) then ChildObj.Update(StrValue);
+    end
+    else
+      RecursivePopulate(PVmtFieldTable(PVMT(FieldClass)^.vFieldTable),
+        ChildObj, FullName, Map);
   end;
-  NameValues.Free;
+end;
 
-  Process(PVmtFieldTable(PVMT(Param.ClassType)^.vFieldTable), Param, '');
-
-  NameValueMap.Free;
+function InitAndParse(constref ParamStr: AnsiString; Param: TValue): Boolean;
+var
+  Map: TStringStringMap;
+  Pairs: TStringList;
+  S, K, V: AnsiString;
+  EqPos: integer;
+begin
+  Map := TStringStringMap.Create;
+  Pairs := TStringList.Create;
+  Pairs.Delimiter := ',';
+  Pairs.DelimitedText := ParamStr;
+  for S in Pairs do
+  begin
+    EqPos := Pos('=', S);
+    if EqPos > 0 then
+    begin
+      K := LowerCase('.' + Copy(S, 1, EqPos - 1));
+      V := Copy(S, EqPos + 1, Length(S));
+      Map.AddOrSetValue(K, V);
+    end;
+  end;
+  RecursivePopulate(PVmtFieldTable(PVMT(Param.ClassType)^.vFieldTable), Param, '', Map);
+  Pairs.Free;
+  Map.Free;
   Result := True;
-
 end;
 
 function InitFromParameters(Param: TValue): Boolean;
 var
-  AllParamStr: AnsiString;
-  i: Integer;
-
+  Combined: AnsiString;
+  i: integer;
 begin
-  AllParamStr := '';
-
+  if ParamCount = 0 then Exit(True);
+  Combined := '';
   for i := 1 to ParamCount do
-    AllParamStr += ',' + ParamStr(i);
-  AllParamStr := Copy(AllParamStr, 2, Length(AllParamStr));
-  if AllParamStr = '' then
-    Exit(True);
-
-  Result := InitAndParse(AllParamStr, Param);
-
+  begin
+    if i > 1 then Combined += ',';
+    Combined += ParamStr(i);
+  end;
+  Result := InitAndParse(Combined, Param);
 end;
 
 end.
-
